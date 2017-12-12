@@ -45,11 +45,61 @@ generate 'simple_form:install --bootstrap'
 remove_dir 'app/assets'
 
 
+
 file 'Procfile' do
-  """
-  server: bin/rails server
-  assets: bin/webpack-dev-server
-  """
+%{
+server: rvm 2.4.1 do bin/rails server
+assets: rvm 2.4.1 do bin/webpack-dev-server
+}
 end
 
+
+insert_into_file 'app/controllers/application_controller.rb', before: 'end' do
+%{
+  prepend_view_path Rails.root.join("frontend")
+}
+end
+
+remove_file 'app/views/layouts/application.html.erb'
+file 'app/views/layouts/application.slim' do
+%{
+doctype html
+html lang="cs"
+  head
+    = csrf_meta_tags
+    = action_cable_meta_tag
+    = javascript_pack_tag "application"
+    = stylesheet_pack_tag "application"
+
+  body
+    = yield
+end
+}
+end
+
+
 run 'mv app/javascript frontend/'
+
+
+file 'frontend/packs/application.js' do
+%{
+import "./application.css";
+
+document.body.insertAdjacentHTML("afterbegin", "Webpacker works!");
+}
+end
+
+
+
+file 'frontend/packs/application.scss' do
+ """
+  html, body {
+    background: lightyellow;
+    h1 { color: 'red' }
+  }
+"""
+end
+
+
+gsub_file 'config/webpacker.yml', /app\/javascript/, 'frontend'
+
